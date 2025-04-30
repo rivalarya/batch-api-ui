@@ -83,15 +83,23 @@ class OpenAIApiService implements ApiService {
   }
 
   /**
-   * Create a batch job with OpenAI
-   * @param file - The file to upload
-   * @param endpoint - The API endpoint to use (default: /v1/chat/completions)
-   * @param completionWindow - Time window for batch completion (default: 24h)
-   * @returns A promise that resolves to the batch job ID
-   */
-  async createBatchJob(file: File, endpoint = '/v1/chat/completions', completionWindow = '24h'): Promise<string> {
-    // First upload the file
-    const fileId = await this.uploadFile(file);
+ * Create a batch job with OpenAI
+ * @param fileIdOrFile - The file ID or File object
+ * @param endpoint - The API endpoint to use (default: /v1/chat/completions)
+ * @param completionWindow - Time window for batch completion (default: 24h)
+ * @returns A promise that resolves to the batch job ID
+ */
+  async createBatchJob(fileIdOrFile: string | File, endpoint = '/v1/chat/completions', completionWindow = '24h'): Promise<string> {
+    // Determine if we have a file ID or need to upload the file
+    let fileId: string;
+
+    if (typeof fileIdOrFile === 'string') {
+      // Already have a file ID
+      fileId = fileIdOrFile;
+    } else {
+      // Need to upload the file first
+      fileId = await this.uploadFile(fileIdOrFile);
+    }
 
     const apiKey = this.getApiKey();
     if (!apiKey) {

@@ -216,9 +216,14 @@
                       {{ batchStatus.status === 'completed' ? 'Ready for download' : 'Processing...' }}
                     </div>
                   </div>
-                  <Button label="Download Results" icon="pi pi-download" :disabled="batchStatus.status !== 'completed'"
-                    :loading="isDownloading"
-                    @click="downloadResults(provider === 'openai' ? batchStatus.output_file_id : batchId)" />
+                  <div class="flex items-center">
+                    <Button label="Download Results" icon="pi pi-download"
+                      :disabled="batchStatus.status !== 'completed'" :loading="isDownloading"
+                      @click="downloadResults(provider === 'openai' ? batchStatus.output_file_id : batchId)" />
+                    <Button label="View Results" icon="pi pi-eye" class="ml-2"
+                      :disabled="batchStatus.status !== 'completed'" :loading="isViewingResults"
+                      @click="viewBatchResults(provider === 'openai' ? batchStatus.output_file_id : batchId)" />
+                  </div>
                 </div>
               </div>
             </template>
@@ -241,6 +246,10 @@
         </div>
       </div>
     </div>
+
+    <!-- Using the new ResultViewer component -->
+    <ResultViewer v-model:visible="resultsDialog" :provider="provider" :batchId="batchId"
+      :fileId="provider === 'openai' ? batchStatus?.output_file_id : batchId" @close="resultsDialog = false" />
 
     <Dialog v-model:visible="cancelDialog" header="Cancel Batch Job" modal :style="{ width: '450px' }">
       <div class="flex flex-column gap-3">
@@ -275,6 +284,7 @@ import Dropdown from 'primevue/dropdown';
 import { useToast } from 'primevue/usetoast';
 import Popover from 'primevue/popover';
 import ApiServiceFactory from '../services/ApiServiceFactory';
+import ResultViewer from '../components/ResultViewer.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -290,23 +300,11 @@ const batchError = ref(null);
 const recentBatchJobs = ref([]);
 const cancelDialog = ref(false);
 const statusPopover = ref(null);
-
-const props = defineProps({
-  batchStatus: {
-    type: Object,
-    default: () => ({
-      request_counts: {
-        succeeded: 0,
-        errored: 0,
-        processing: 0,
-        canceled: 0
-      }
-    })
-  }
-});
+const resultsDialog = ref(false);
+const isViewingResults = ref(false);
 
 const getTotalTasks = () => {
-  const counts = props.batchStatus.request_counts || {};
+  const counts = batchStatus.value?.request_counts || {};
   return (counts.succeeded || 0) +
     (counts.errored || 0) +
     (counts.processing || 0) +
@@ -317,9 +315,9 @@ const getCompletionPercentage = () => {
   const total = getTotalTasks();
   if (total === 0) return 0;
 
-  const completed = (props.batchStatus.request_counts?.succeeded || 0) +
-    (props.batchStatus.request_counts?.errored || 0) +
-    (props.batchStatus.request_counts?.canceled || 0);
+  const completed = (batchStatus.value?.request_counts?.succeeded || 0) +
+    (batchStatus.value?.request_counts?.errored || 0) +
+    (batchStatus.value?.request_counts?.canceled || 0);
 
   return Math.round((completed / total) * 100);
 };
@@ -496,6 +494,19 @@ async function downloadResults(fileId) {
   } finally {
     isDownloading.value = false;
   }
+}
+
+// Simplified function to open the result viewer
+function viewBatchResults(fileId) {
+  if (!fileId) return;
+
+  isViewingResults.value = true;
+  resultsDialog.value = true;
+
+  // The ResultViewer component will handle loading the data
+  setTimeout(() => {
+    isViewingResults.value = false;
+  }, 500);
 }
 
 function confirmCancelBatch() {
