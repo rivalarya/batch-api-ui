@@ -78,7 +78,6 @@ const showOpenaiKey = ref(false);
 const showAnthropicKey = ref(false);
 
 onMounted(() => {
-  // Load saved API keys
   const savedOpenaiKey = localStorage.getItem('openai_api_key');
   if (savedOpenaiKey) {
     openaiApiKey.value = savedOpenaiKey;

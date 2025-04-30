@@ -45,92 +45,72 @@ const props = defineProps({
 
 const toast = useToast();
 
-// Determine if the response is successful
 const isSuccess = computed(() => {
-  // Check for nested response structure (batch API format)
   if (props.result?.response?.status_code === 200) {
     return true;
   }
 
-  // Check for direct API response format
   if (props.result?.status_code === 200) {
     return true;
   }
 
-  // Check if response contains choices with message content
   return (props.result?.body?.choices?.[0]?.message?.content !== undefined) ||
     (props.result?.response?.body?.choices?.[0]?.message?.content !== undefined);
 });
 
-// Determine if it's an error
 const isError = computed(() => {
-  // Check for error in batch API response
   if (props.result?.error) {
     return true;
   }
 
-  // Check for error status code in nested response
   if (props.result?.response?.status_code && props.result.response.status_code !== 200) {
     return true;
   }
 
-  // Check for error status code in direct response
   if (props.result?.status_code && props.result.status_code !== 200) {
     return true;
   }
 
-  // Check for error in body
   return props.result?.body?.error || props.result?.response?.body?.error;
 });
 
-// Extract content from OpenAI response
 const extractedContent = computed(() => {
-  // Try batch API nested format
   if (props.result?.response?.body?.choices?.[0]?.message?.content) {
     return props.result.response.body.choices[0].message.content;
   }
 
-  // Try direct API format
   if (props.result?.body?.choices?.[0]?.message?.content) {
     return props.result.body.choices[0].message.content;
   }
 
-  // Try completion response (nested)
   if (props.result?.response?.body?.choices?.[0]?.text) {
     return props.result.response.body.choices[0].text;
   }
 
-  // Try completion response (direct)
   if (props.result?.body?.choices?.[0]?.text) {
     return props.result.body.choices[0].text;
   }
 
-  // For legacy completions or other formats (nested)
   if (props.result?.response?.body?.choices && typeof props.result.response.body.choices[0] === 'string') {
     return props.result.response.body.choices[0];
   }
 
-  // For legacy completions or other formats (direct)
   if (props.result?.body?.choices && typeof props.result.body.choices[0] === 'string') {
     return props.result.body.choices[0];
   }
 
-  // If content is directly on the body (nested)
   if (props.result?.response?.body?.content) {
     return props.result.response.body.content;
   }
 
-  // If content is directly on the body (direct)
   if (props.result?.body?.content) {
     return props.result.body.content;
   }
 
-  // If the result has direct content
   if (props.result?.content) {
     return props.result.content;
   }
 
-  // If response has direct content
   if (props.result?.response?.content) {
     return props.result.response.content;
   }
@@ -139,41 +119,33 @@ const extractedContent = computed(() => {
 });
 
 const parsedContent = computed(() => {
-  // Parse the markdown content
   let parsed = marked.parse(extractedContent.value);
-  
-  // Add copy buttons to code blocks
+
   parsed = parsed.replace(
     /<pre><code( class="language-[^"]*")?>([^<]+)<\/code><\/pre>/g,
     '<div class="relative code-block-wrapper"><pre><code$1>$2</code></pre><button class="code-copy-btn"><i class="pi pi-copy"></i></button></div>'
   );
-  
+
   return parsed;
 });
 
-// Extract error information
 const errorMessage = computed(() => {
-  // Check for error in nested structure
   if (props.result?.error?.message) {
     return props.result.error.message;
   }
 
-  // Check for error in response body
   if (props.result?.response?.body?.error?.message) {
     return props.result.response.body.error.message;
   }
 
-  // Check for error in direct body
   if (props.result?.body?.error?.message) {
     return props.result.body.error.message;
   }
 
-  // Check for string error
   if (props.result?.error && typeof props.result.error === 'string') {
     return props.result.error;
   }
 
-  // Check for string error in response
   if (props.result?.response?.error && typeof props.result.response.error === 'string') {
     return props.result.response.error;
   }
@@ -182,17 +154,14 @@ const errorMessage = computed(() => {
 });
 
 const errorType = computed(() => {
-  // Check for error type in nested structure
   if (props.result?.error?.type) {
     return props.result.error.type;
   }
 
-  // Check for error type in response body
   if (props.result?.response?.body?.error?.type) {
     return props.result.response.body.error.type;
   }
 
-  // Check for error type in direct body
   if (props.result?.body?.error?.type) {
     return props.result.body.error.type;
   }
@@ -200,7 +169,6 @@ const errorType = computed(() => {
   return '';
 });
 
-// Copy content function
 function copyContent() {
   if (!extractedContent.value) return;
 

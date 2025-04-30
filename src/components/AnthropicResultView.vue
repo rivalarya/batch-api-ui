@@ -49,19 +49,16 @@ const props = defineProps({
 
 const toast = useToast();
 
-// Extract result type
 const resultType = computed(() => {
   if (!props.result?.result?.type) return 'unknown';
   return props.result.result.type;
 });
 
-// Extract content from Anthropic response
 const extractedContent = computed(() => {
   if (!props.result?.result?.message?.content) return '';
 
   const content = props.result.result.message.content;
 
-  // If content is an array of objects with text property
   if (Array.isArray(content)) {
     return content
       .filter(item => item.type === 'text' && item.text)
@@ -69,7 +66,6 @@ const extractedContent = computed(() => {
       .join('\n\n');
   }
 
-  // If content is a string
   if (typeof content === 'string') {
     return content;
   }
@@ -77,12 +73,9 @@ const extractedContent = computed(() => {
   return '';
 });
 
-// Parse content using marked.js
 const parsedContent = computed(() => {
-  // Parse the markdown content
   let parsed = marked.parse(extractedContent.value);
 
-  // Add copy buttons to code blocks
   parsed = parsed.replace(
     /<pre><code( class="language-[^"]*")?>([^<]+)<\/code><\/pre>/g,
     '<div class="relative code-block-wrapper"><pre><code$1>$2</code></pre><button class="code-copy-btn"><i class="pi pi-copy"></i></button></div>'
@@ -91,7 +84,6 @@ const parsedContent = computed(() => {
   return parsed;
 });
 
-// Extract error information
 const errorMessage = computed(() => {
   return props.result?.result?.error?.error?.message || '';
 });
@@ -104,7 +96,6 @@ const errorDetails = computed(() => {
   return props.result?.result?.error?.error?.details || '';
 });
 
-// Copy content function
 function copyContent() {
   if (!extractedContent.value) return;
 
@@ -128,7 +119,6 @@ function copyContent() {
     });
 }
 
-// Initialize code copy buttons after rendering
 onMounted(() => {
   setTimeout(() => {
     const copyButtons = document.querySelectorAll('.code-copy-btn');

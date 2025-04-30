@@ -29,7 +29,6 @@ const route = useRoute();
 
 const selectedProvider = ref(localStorage.getItem('selected_provider') || '');
 
-// Update provider based on route query
 watch(() => route.query.provider, (newProvider) => {
   if (newProvider) {
     selectedProvider.value = newProvider;

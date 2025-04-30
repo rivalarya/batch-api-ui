@@ -49,10 +49,7 @@ class AnthropicApiService implements ApiService {
       throw new Error('API key not found. Please set your API key in the Settings section.');
     }
 
-    // Read the JSONL file content
     const jsonlContent = await this._readFileContent(jsonlFile);
-
-    // Parse JSONL and format for Anthropic's batch API
     const requests = this._parseJsonlToAnthropicFormat(jsonlContent);
 
     const response = await fetch('/api/anthropic/v1/messages/batches', {
@@ -86,12 +83,10 @@ class AnthropicApiService implements ApiService {
       try {
         const requestData = JSON.parse(line);
 
-        // Check if this is already in Anthropic format
         if (requestData.params && requestData.params.messages) {
           return requestData;
         }
 
-        // If it's in OpenAI format, convert it
         if (requestData.body && requestData.body.messages) {
           return {
             custom_id: requestData.custom_id || `req-${Math.random().toString(36).substring(2, 10)}`,
@@ -103,7 +98,6 @@ class AnthropicApiService implements ApiService {
           };
         }
 
-        // Default structure
         return {
           custom_id: requestData.custom_id || `req-${Math.random().toString(36).substring(2, 10)}`,
           params: {
@@ -169,14 +163,13 @@ class AnthropicApiService implements ApiService {
 
     const data = await response.json();
 
-    // Map to standardized format
     return {
       id: data.id,
       status: this._mapStatusToCommon(data.processing_status),
       created_at: data.created_at,
       completed_at: data.ended_at,
       eta: data.expires_at,
-      output_file_id: null, // Will be set when downloading
+      output_file_id: null,
       input_file_id: null,
       request_counts: data.request_counts,
       total_count: data.request_counts?.processing +
@@ -200,7 +193,6 @@ class AnthropicApiService implements ApiService {
       case 'ended':
         return 'completed';
       case 'in_progress':
-        return 'in_progress';
       case 'canceling':
         return 'in_progress';
       case 'canceled':
@@ -267,7 +259,6 @@ class AnthropicApiService implements ApiService {
 
     const data = await response.json();
 
-    // Format to match standardized structure
     return data.data.map((batch: any) => ({
       id: batch.id,
       status: this._mapStatusToCommon(batch.processing_status),
@@ -293,14 +284,12 @@ class AnthropicApiService implements ApiService {
       throw new Error('API key not found. Please set your API key in the Settings section.');
     }
 
-    // First, get the batch status to get the results URL
     const batchStatus = await this.getBatchStatus(batchId);
 
     if (!batchStatus.results_url) {
       throw new Error('Results are not yet available for this batch');
     }
 
-    // Get the results directly from Anthropic's API
     const response = await fetch(`/api/anthropic/v1/messages/batches/${batchId}/results`, {
       method: 'GET',
       headers: {
@@ -321,7 +310,6 @@ class AnthropicApiService implements ApiService {
    * @param batchData - The batch data to save
    */
   saveBatchInfo(batchData: Partial<SavedBatchJob>): void {
-    // Load existing batch info
     let batchJobs: SavedBatchJob[] = [];
     const savedBatchJobs = localStorage.getItem('anthropic_batch_jobs');
     if (savedBatchJobs) {
@@ -337,7 +325,6 @@ class AnthropicApiService implements ApiService {
       return;
     }
 
-    // Add new batch info or update existing one
     const existingBatchIndex = batchJobs.findIndex(batch => batch.id === batchData.id);
     if (existingBatchIndex >= 0) {
       batchJobs[existingBatchIndex] = {
@@ -365,10 +352,7 @@ class AnthropicApiService implements ApiService {
       batchJobs.push(newBatch);
     }
 
-    // Sort by date descending
     batchJobs.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-
-    // Save back to local storage
     localStorage.setItem('anthropic_batch_jobs', JSON.stringify(batchJobs));
   }
 
@@ -395,16 +379,12 @@ class AnthropicApiService implements ApiService {
   updateBatchesInStorage(batches: any[]): void {
     if (!Array.isArray(batches) || batches.length === 0) return;
 
-    // Get existing batches
     let existingBatches = this.getSavedBatchJobs();
-
-    // Create a map for quick lookup
     const existingBatchMap = existingBatches.reduce<Record<string, SavedBatchJob>>((map, batch) => {
       map[batch.id] = batch;
       return map;
     }, {});
 
-    // Merge new batches with existing ones
     for (const batch of batches) {
       existingBatchMap[batch.id] = {
         id: batch.id,
@@ -422,13 +402,8 @@ class AnthropicApiService implements ApiService {
       };
     }
 
-    // Convert map back to array
     const updatedBatches = Object.values(existingBatchMap);
-
-    // Sort by date descending
     updatedBatches.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-
-    // Save back to localStorage
     localStorage.setItem('anthropic_batch_jobs', JSON.stringify(updatedBatches));
   }
 }

@@ -1,4 +1,3 @@
-// Standardized batch status response structure
 export interface BatchStatus {
   id: string;
   status: string;
@@ -23,13 +22,11 @@ export interface BatchStatus {
   completion_window: string;
 }
 
-// Batch job information saved in localStorage
 export interface SavedBatchJob extends BatchStatus {
   date: string;
   lastChecked: string;
 }
 
-// API Service interface that both providers will implement
 export interface ApiService {
   getApiKey(): string | null;
   saveApiKey(apiKey: string): void;

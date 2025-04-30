@@ -184,23 +184,19 @@ const router = useRouter();
 const route = useRoute();
 const toast = useToast();
 
-// Get the provider from the route
 const provider = ref(route.query.provider || 'openai');
 const apiService = computed(() => ApiServiceFactory.getService(provider.value));
 
-// Provider name for display
 const providerName = computed(() => {
   return provider.value === 'openai' ? 'OpenAI' : 'Anthropic';
 });
 
-// API endpoint for display
 const apiEndpoint = computed(() => {
   return provider.value === 'openai'
     ? 'https://api.openai.com/v1/batches'
     : 'https://api.anthropic.com/v1/messages/batches';
 });
 
-// Step tracking
 const activeStep = ref(1);
 const steps = ref([
   { label: 'API Key' },
@@ -209,24 +205,20 @@ const steps = ref([
   { label: 'Confirmation' }
 ]);
 
-// API key handling
 const apiKey = ref('');
 const showApiKey = ref(false);
 const saveKeyFlag = ref(true);
 const apiKeyVerified = ref(false);
 
-// Batch configuration
 const jsonlInput = ref('');
 const isSubmitting = ref(false);
 const batchJobId = ref('');
 const inputFileId = ref('');
-const completionWindow = ref('24h'); // Fixed to 24h
+const completionWindow = ref('24h');
 
-// Computed properties
 const isConfigValid = computed(() => {
   if (!jsonlInput.value.trim()) return false;
 
-  // Check if any line is valid JSON
   const lines = jsonlInput.value.split('\n');
 
   for (const line of lines) {
@@ -235,26 +227,23 @@ const isConfigValid = computed(() => {
 
     try {
       JSON.parse(trimmed);
-      return true; // If at least one line is valid JSON, the input is valid
+      return true;
     } catch (e) {
-      // Continue checking other lines
+      // Pass
     }
   }
 
-  // If no valid JSON line was found, try parsing the entire input as JSON
   try {
     const jsonObj = JSON.parse(jsonlInput.value);
-    return true; // Valid if entire content is valid JSON
+    return true;
   } catch (e) {
-    return false; // Not valid JSON at all
+    return false;
   }
 });
 
 onMounted(() => {
-  // Load saved API key
   apiKey.value = apiService.value.getApiKey() || '';
 
-  // Select first step without relying on specific ID
   setTimeout(() => {
     const firstStepElement = document.querySelector('#step-1>button');
     if (firstStepElement) {
@@ -264,7 +253,6 @@ onMounted(() => {
 });
 
 function verifyAndContinue(activateCallback) {
-  // Validate API key
   if (apiKey.value.trim() === '') {
     toast.add({
       severity: 'error',
@@ -275,7 +263,6 @@ function verifyAndContinue(activateCallback) {
     return;
   }
 
-  // Simple check for API key format
   if (!apiService.value.isValidApiKeyFormat(apiKey.value)) {
     toast.add({
       severity: 'warn',
@@ -286,7 +273,6 @@ function verifyAndContinue(activateCallback) {
     });
   }
 
-  // Save API key if requested
   if (saveKeyFlag.value) {
     apiService.value.saveApiKey(apiKey.value);
   }
@@ -298,7 +284,6 @@ function verifyAndContinue(activateCallback) {
 function countJsonlEntries() {
   if (!jsonlInput.value.trim()) return 0;
 
-  // Count valid JSON lines
   const lines = jsonlInput.value.split('\n');
   let count = 0;
 
@@ -310,11 +295,10 @@ function countJsonlEntries() {
       JSON.parse(trimmed);
       count++;
     } catch (e) {
-      // Not a valid JSON line
+
     }
   }
 
-  // If no valid lines found but entire content is valid JSON, count as 1
   if (count === 0) {
     try {
       JSON.parse(jsonlInput.value);
@@ -341,20 +325,16 @@ function validateAndGoToReview(activateCallback) {
   activateCallback(3);
 }
 
-// Function to create a JSONL file from input
 function createJsonlFile() {
-  // Format the input properly as JSONL if it's a single JSON object
   let jsonlContent = jsonlInput.value;
 
-  // If the entire input is a single JSON, ensure it's on a single line
   try {
     const jsonObj = JSON.parse(jsonlInput.value);
     jsonlContent = JSON.stringify(jsonObj);
   } catch (e) {
-    // It's already in JSONL format (or invalid, which will be caught elsewhere)
+    // pass
   }
 
-  // Create a Blob with the JSONL content
   const jsonlBlob = new Blob([jsonlContent], { type: 'application/x-jsonlines' });
   return new File([jsonlBlob], 'batchinput.jsonl', { type: 'application/x-jsonlines' });
 }
@@ -363,19 +343,15 @@ async function submitBatchJob(activateCallback) {
   isSubmitting.value = true;
 
   try {
-    // Create a JSONL file
     const jsonlFile = createJsonlFile();
 
     if (provider.value === 'openai') {
-      // OpenAI flow: upload file first, then create batch
       const fileId = await apiService.value.uploadFile(jsonlFile);
       inputFileId.value = fileId;
 
-      // Create batch job with the file ID
       const batchId = await apiService.value.createBatchJob(fileId, '/v1/chat/completions', '24h');
       batchJobId.value = batchId;
 
-      // Save batch information
       apiService.value.saveBatchInfo({
         id: batchJobId.value,
         status: 'pending',
@@ -385,11 +361,9 @@ async function submitBatchJob(activateCallback) {
         provider: provider.value
       });
     } else {
-      // Anthropic flow: create batch directly with requests
       const batchId = await apiService.value.createBatchJob(jsonlFile);
       batchJobId.value = batchId;
 
-      // Save batch information
       apiService.value.saveBatchInfo({
         id: batchJobId.value,
         status: 'pending',
@@ -399,7 +373,6 @@ async function submitBatchJob(activateCallback) {
       });
     }
 
-    // Move to confirmation step
     activateCallback(4);
   } catch (error) {
     console.error('Error submitting batch job:', error);
@@ -419,7 +392,6 @@ function goToCheckBatch() {
 }
 
 function resetForm() {
-  // Reset form for a new batch job
   jsonlInput.value = '';
   batchJobId.value = '';
   inputFileId.value = '';
@@ -428,6 +400,6 @@ function resetForm() {
     if (firstStepElement) {
       firstStepElement.click();
     }
-  }, 100); // Reset to first panel
+  }, 100);
 }
 </script>

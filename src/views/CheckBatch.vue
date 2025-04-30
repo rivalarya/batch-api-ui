@@ -322,7 +322,6 @@ const getCompletionPercentage = () => {
   return Math.round((completed / total) * 100);
 };
 
-// Provider handling
 const selectedProvider = ref(route.query.provider || localStorage.getItem('selected_provider') || 'openai');
 const providerOptions = ref([
   { name: 'OpenAI', value: 'openai' },
@@ -339,12 +338,10 @@ const apiService = computed(() => {
   return ApiServiceFactory.getService(provider.value);
 });
 
-// Watch for provider changes to update the batch list
 watch(selectedProvider, (newProvider) => {
   loadRecentBatchJobs();
   updateUrlWithProvider();
 
-  // Clear current batch if provider changes
   if (batchStatus.value) {
     batchStatus.value = null;
     batchError.value = null;
@@ -352,10 +349,8 @@ watch(selectedProvider, (newProvider) => {
 });
 
 onMounted(() => {
-  // Load recent batch jobs based on provider
   loadRecentBatchJobs();
 
-  // Check if batch ID is provided in query params
   const idFromRoute = route.query.id;
   if (idFromRoute) {
     batchId.value = idFromRoute;
@@ -392,11 +387,9 @@ async function checkBatchStatus() {
   batchError.value = null;
 
   try {
-    // Use ApiService to get batch status
     const data = await apiService.value.getBatchStatus(batchId.value);
     batchStatus.value = data;
 
-    // Update batch status in storage via ApiService
     apiService.value.saveBatchInfo({
       id: data.id,
       status: data.status,
@@ -407,7 +400,6 @@ async function checkBatchStatus() {
       provider: selectedProvider.value
     });
 
-    // Update URL with batch ID and provider for sharing
     router.replace({ path: '/check', query: { id: batchId.value, provider: selectedProvider.value } });
 
   } catch (error) {
@@ -423,16 +415,12 @@ async function fetchAllBatches() {
   batchError.value = null;
 
   try {
-    // Use ApiService to list batches
     const batches = await apiService.value.listBatches(10);
 
-    // Update local storage with fetched batches
     apiService.value.updateBatchesInStorage(batches);
 
-    // Reload the list
     loadRecentBatchJobs();
 
-    // Show success message
     toast.add({
       severity: 'success',
       summary: 'Batches Retrieved',
@@ -461,10 +449,8 @@ async function downloadResults(fileId) {
   isDownloading.value = true;
 
   try {
-    // Use ApiService to download file content
     const content = await apiService.value.downloadFileContent(fileId);
 
-    // Create a blob and download it
     const blob = new Blob([content], { type: 'application/x-jsonlines' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -496,14 +482,12 @@ async function downloadResults(fileId) {
   }
 }
 
-// Simplified function to open the result viewer
 function viewBatchResults(fileId) {
   if (!fileId) return;
 
   isViewingResults.value = true;
   resultsDialog.value = true;
 
-  // The ResultViewer component will handle loading the data
   setTimeout(() => {
     isViewingResults.value = false;
   }, 500);
@@ -519,13 +503,10 @@ async function cancelBatch() {
   isCancelling.value = true;
 
   try {
-    // Use ApiService to cancel batch
     await apiService.value.cancelBatchJob(batchId.value);
 
-    // Close the dialog
     cancelDialog.value = false;
 
-    // Show success message
     toast.add({
       severity: 'success',
       summary: 'Batch Cancelled',
@@ -533,7 +514,6 @@ async function cancelBatch() {
       life: 3000
     });
 
-    // Refresh status
     checkBatchStatus();
 
   } catch (error) {
@@ -554,7 +534,7 @@ function formatDate(dateString) {
   if (!dateString) return 'N/A';
 
   if (typeof dateString === 'number') {
-    dateString = dateString * 1000; // Convert to milliseconds
+    dateString = dateString * 1000;
   }
 
   try {
@@ -590,7 +570,6 @@ function calculateProgress(status) {
     return (status.processed_count / status.total_count) * 100;
   }
 
-  // Default progress for in_progress status when counts aren't available
   return status.status === 'in_progress' ? 50 : 10;
 }
 </script>

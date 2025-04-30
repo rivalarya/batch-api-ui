@@ -90,14 +90,11 @@ class OpenAIApiService implements ApiService {
  * @returns A promise that resolves to the batch job ID
  */
   async createBatchJob(fileIdOrFile: string | File, endpoint = '/v1/chat/completions', completionWindow = '24h'): Promise<string> {
-    // Determine if we have a file ID or need to upload the file
     let fileId: string;
 
     if (typeof fileIdOrFile === 'string') {
-      // Already have a file ID
       fileId = fileIdOrFile;
     } else {
-      // Need to upload the file first
       fileId = await this.uploadFile(fileIdOrFile);
     }
 
@@ -154,7 +151,6 @@ class OpenAIApiService implements ApiService {
 
     const data = await response.json() as OpenAIBatchResponse;
 
-    // Convert to standardized format
     return {
       id: data.id,
       status: this._mapStatusToCommon(data.status),
@@ -263,7 +259,6 @@ class OpenAIApiService implements ApiService {
 
     const data = await response.json();
 
-    // Convert to standardized format
     return data.data.map((batch: OpenAIBatchResponse) => ({
       id: batch.id,
       status: this._mapStatusToCommon(batch.status),
@@ -307,7 +302,6 @@ class OpenAIApiService implements ApiService {
    * @param batchData - The batch data to save
    */
   saveBatchInfo(batchData: Partial<SavedBatchJob>): void {
-    // Load existing batch info
     let batchJobs: SavedBatchJob[] = [];
     const savedBatchJobs = localStorage.getItem('openai_batch_jobs');
     if (savedBatchJobs) {
@@ -323,9 +317,6 @@ class OpenAIApiService implements ApiService {
       return;
     }
 
-    // Add missing properties with defaults if needed
-
-    // Add new batch info or update existing one
     const existingBatchIndex = batchJobs.findIndex(batch => batch.id === batchData.id);
     if (existingBatchIndex >= 0) {
       batchJobs[existingBatchIndex] = {
@@ -353,10 +344,8 @@ class OpenAIApiService implements ApiService {
       batchJobs.push(newBatch);
     }
 
-    // Sort by date descending
     batchJobs.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-    // Save back to local storage
     localStorage.setItem('openai_batch_jobs', JSON.stringify(batchJobs));
   }
 
@@ -383,16 +372,13 @@ class OpenAIApiService implements ApiService {
   updateBatchesInStorage(batches: any[]): void {
     if (!Array.isArray(batches) || batches.length === 0) return;
 
-    // Get existing batches
     let existingBatches = this.getSavedBatchJobs();
 
-    // Create a map for quick lookup
     const existingBatchMap = existingBatches.reduce<Record<string, SavedBatchJob>>((map, batch) => {
       map[batch.id] = batch;
       return map;
     }, {});
 
-    // Merge new batches with existing ones
     for (const batch of batches) {
       existingBatchMap[batch.id] = {
         id: batch.id,
@@ -428,13 +414,10 @@ class OpenAIApiService implements ApiService {
       };
     }
 
-    // Convert map back to array
     const updatedBatches = Object.values(existingBatchMap);
 
-    // Sort by date descending
     updatedBatches.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-    // Save back to localStorage
     localStorage.setItem('openai_batch_jobs', JSON.stringify(updatedBatches));
   }
 }

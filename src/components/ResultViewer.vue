@@ -1,7 +1,6 @@
 <!-- ResultViewer.vue -->
 <template>
   <div>
-    <!-- Results Dialog -->
     <Dialog v-model:visible="resultsDialog" header="Batch Results" modal maximizable :style="{ width: '70vw' }"
       class="results-dialog">
       <div v-if="isLoadingResults" class="flex justify-center items-center p-6">
@@ -106,12 +105,10 @@ const resultError = ref(null);
 const showMetadata = ref(false);
 const resultsCache = ref({});
 
-// Create a computed property for the API service
 const apiService = computed(() => {
   return ApiServiceFactory.getService(props.provider);
 });
 
-// Watch for visible prop changes
 watch(() => props.visible, (newValue) => {
   resultsDialog.value = newValue;
   if (newValue && (props.fileId || props.batchId)) {
@@ -119,37 +116,29 @@ watch(() => props.visible, (newValue) => {
   }
 });
 
-// Watch for resultsDialog changes to emit updates
 watch(resultsDialog, (newValue) => {
   emit('update:visible', newValue);
 });
 
-// Computed property to get the current result
 const currentResult = computed(() => {
   if (resultData.value.length === 0) return null;
   return resultData.value[currentResultIndex.value];
 });
 
-// Computed property to get metadata from the current result
 const metadata = computed(() => {
   if (!currentResult.value) return {};
 
   const metadataFields = {};
 
-  // Add custom_id if available
   if (currentResult.value.custom_id) {
     metadataFields.custom_id = currentResult.value.custom_id;
   }
 
   if (props.provider === 'anthropic') {
-    // Handle Anthropic specific metadata
-
-    // Handle result type
     if (currentResult.value.result?.type) {
       metadataFields.result_type = currentResult.value.result.type;
     }
 
-    // Handle successful results with message
     if (currentResult.value.result?.message) {
       const message = currentResult.value.result.message;
 
@@ -162,7 +151,6 @@ const metadata = computed(() => {
       if (message.usage) metadataFields.usage = message.usage;
     }
 
-    // Handle error results
     if (currentResult.value.result?.error) {
       const error = currentResult.value.result.error;
 
@@ -174,9 +162,6 @@ const metadata = computed(() => {
       }
     }
   } else {
-    // Handle OpenAI specific metadata - Support both direct and nested structures
-
-    // Handle nested OpenAI batch response format
     if (currentResult.value.response) {
       if (currentResult.value.response.status_code) {
         metadataFields.status_code = currentResult.value.response.status_code;
@@ -199,7 +184,6 @@ const metadata = computed(() => {
       }
     }
 
-    // Handle direct OpenAI response format (as fallback)
     if (currentResult.value.body) {
       const body = currentResult.value.body;
 
@@ -219,7 +203,6 @@ const metadata = computed(() => {
   return metadataFields;
 });
 
-// Load batch results
 async function loadResults() {
   const id = props.fileId || props.batchId;
   if (!id) return;
@@ -229,17 +212,14 @@ async function loadResults() {
   currentResultIndex.value = 0;
 
   try {
-    // Check if we have cached results
     if (resultsCache.value[id]) {
       resultData.value = resultsCache.value[id];
       console.log('Using cached results for:', id);
       return;
     }
 
-    // Use the provider-specific API service to download content
     const content = await apiService.value.downloadFileContent(id);
 
-    // Parse JSONL content
     const lines = content.trim().split('\n');
     const parsedResults = lines.map(line => {
       try {
@@ -249,7 +229,6 @@ async function loadResults() {
       }
     });
 
-    // Store in cache and set current results
     resultsCache.value[id] = parsedResults;
     resultData.value = parsedResults;
 
@@ -261,13 +240,10 @@ async function loadResults() {
   }
 }
 
-// Format field name for display
 function formatFieldName(key) {
-  // Capitalize first letter and replace underscores with spaces
   return key.charAt(0).toUpperCase() + key.slice(1).replace(/_/g, ' ');
 }
 
-// Format date
 function formatDate(dateString) {
   if (!dateString) return 'N/A';
 
