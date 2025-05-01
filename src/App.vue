@@ -9,11 +9,9 @@
         </div>
       </template>
     </Menubar>
-    
     <div class="container mx-auto p-4">
       <router-view></router-view>
     </div>
-    
     <Toast />
   </div>
 </template>
@@ -26,7 +24,6 @@ import Toast from 'primevue/toast';
 
 const router = useRouter();
 const route = useRoute();
-
 const selectedProvider = ref(localStorage.getItem('selected_provider') || '');
 
 watch(() => route.query.provider, (newProvider) => {
@@ -72,6 +69,17 @@ const items = ref([
         router.push(`/check?provider=${selectedProvider.value}`);
       } else {
         router.push('/');
+      }
+    }
+  },
+  {
+    label: 'JSONL Generator',
+    icon: 'pi pi-code',
+    command: () => {
+      if (selectedProvider.value) {
+        router.push(`/jsonl-generator?provider=${selectedProvider.value}`);
+      } else {
+        router.push('/jsonl-generator');
       }
     }
   },
