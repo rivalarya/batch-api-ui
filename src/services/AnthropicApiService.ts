@@ -13,6 +13,8 @@ interface AnthropicRequest {
 }
 
 class AnthropicApiService implements ApiService {
+  private endpoint: string = '/v1/messages/batches';
+
   /**
    * Get the API key from local storage
    * @returns The API key or null if not found
@@ -178,7 +180,7 @@ class AnthropicApiService implements ApiService {
         data.request_counts?.canceled +
         data.request_counts?.expired,
       results_url: data.results_url,
-      endpoint: '/v1/messages',
+      endpoint: this.endpoint,
       completion_window: '24h'
     };
   }
@@ -190,6 +192,7 @@ class AnthropicApiService implements ApiService {
    */
   private _mapStatusToCommon(status: string): string {
     switch (status) {
+      case 'completed':
       case 'ended':
         return 'completed';
       case 'in_progress':
@@ -268,7 +271,7 @@ class AnthropicApiService implements ApiService {
       input_file_id: null,
       output_file_id: null,
       results_url: batch.results_url,
-      endpoint: '/v1/messages',
+      endpoint: this.endpoint,
       completion_window: '24h'
     }));
   }
@@ -335,7 +338,7 @@ class AnthropicApiService implements ApiService {
     } else {
       const newBatch = {
         id: batchData.id,
-        status: batchData.status || 'pending',
+        status: this._mapStatusToCommon(batchData.status),
         created_at: batchData.created_at || new Date().toISOString(),
         completed_at: batchData.completed_at || null,
         eta: batchData.eta || null,
@@ -344,7 +347,7 @@ class AnthropicApiService implements ApiService {
         request_counts: batchData.request_counts || {},
         total_count: batchData.total_count || 0,
         results_url: batchData.results_url,
-        endpoint: batchData.endpoint || '/v1/messages',
+        endpoint: batchData.endpoint || this.endpoint,
         completion_window: batchData.completion_window || '24h',
         date: batchData.date || new Date().toISOString(),
         lastChecked: new Date().toISOString()
@@ -395,7 +398,7 @@ class AnthropicApiService implements ApiService {
         input_file_id: null,
         output_file_id: null,
         results_url: batch.results_url,
-        endpoint: '/v1/messages',
+        endpoint: this.endpoint,
         completion_window: '24h',
         date: batch.created_at,
         lastChecked: new Date().toISOString()
