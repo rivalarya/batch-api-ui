@@ -96,9 +96,6 @@
                     icon="pi pi-refresh" text rounded class="ml-auto" @click="checkBatchStatus" :loading="isLoading" />
                 </div>
 
-                <ProgressBar v-if="['in_progress', 'pending'].includes(batchStatus.status)"
-                  :value="calculateProgress(batchStatus)" class="h-2 mb-2" />
-
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                   <div class="bg-gray-50 p-3 rounded">
                     <div class="text-sm text-gray-600">Created</div>
@@ -557,19 +554,5 @@ function formatStatus(status) {
   };
 
   return statusMap[status] || status;
-}
-
-function calculateProgress(status) {
-  if (!status) return 0;
-
-  if (status.status === 'completed') return 100;
-  if (status.status === 'failed') return 100;
-  if (status.status === 'cancelled') return 100;
-
-  if (status.processed_count && status.total_count) {
-    return (status.processed_count / status.total_count) * 100;
-  }
-
-  return status.status === 'in_progress' ? 50 : 10;
 }
 </script>
