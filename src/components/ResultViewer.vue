@@ -33,25 +33,6 @@
           <!-- Render the appropriate component based on provider -->
           <AnthropicResultView v-if="props.provider === 'anthropic'" :result="currentResult" />
           <OpenAIResultView v-else :result="currentResult" />
-
-          <!-- Metadata toggle -->
-          <div class="mt-1">
-            <Button @click="showMetadata = !showMetadata" class="w-full text-left"
-              :icon="showMetadata ? 'pi pi-chevron-up' : 'pi pi-chevron-down'"
-              :label="showMetadata ? 'Hide Metadata' : 'Show Metadata'" text />
-          </div>
-
-          <!-- Metadata panel -->
-          <div v-if="showMetadata" class="metadata-panel p-3 border rounded bg-gray-50">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
-              <div v-for="(value, key) in metadata" :key="key" class="p-2 bg-white rounded border border-gray-200">
-                <div class="text-xs font-medium text-gray-500">{{ formatFieldName(key) }}</div>
-                <div class="text-sm whitespace-pre-wrap">
-                  {{ typeof value === 'object' ? JSON.stringify(value, null, 2) : value }}
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
         <div v-else class="text-center p-4">
           <p>No results available</p>
@@ -59,6 +40,30 @@
       </div>
 
       <template #footer>
+        <!-- Info button with popover for metadata -->
+        <div class="mr-auto">
+          <Button v-tooltip.bottom="'Show Metadata'" icon="pi pi-info-circle" severity="secondary" text rounded
+            aria-haspopup="true" aria-controls="metadata-popover" @click="toggleMetadataPopover($event)" />
+
+          <OverlayPanel ref="metadataPanel" id="metadata-popover" class="metadata-popover">
+            <div class="w-96 max-h-96 overflow-auto p-2">
+              <h3 class="font-medium text-gray-700 mb-3">Metadata</h3>
+              <div v-if="Object.keys(metadata).length > 0" class="grid grid-cols-1 gap-2">
+                <div v-for="(value, key) in metadata" :key="key"
+                  class="p-2 bg-white rounded-md border border-gray-200 shadow-sm">
+                  <div class="text-xs font-medium text-gray-500">{{ formatFieldName(key) }}</div>
+                  <div class="text-sm whitespace-pre-wrap mt-1">
+                    {{ formatValue(value) }}
+                  </div>
+                </div>
+              </div>
+              <div v-else class="text-sm text-gray-500 italic p-2">
+                No metadata available
+              </div>
+            </div>
+          </OverlayPanel>
+        </div>
+
         <Button label="Close" icon="pi pi-times" @click="closeDialog" />
       </template>
     </Dialog>
@@ -70,6 +75,7 @@ import { ref, computed, watch } from 'vue';
 import Dialog from 'primevue/dialog';
 import Button from 'primevue/button';
 import Message from 'primevue/message';
+import OverlayPanel from 'primevue/overlaypanel';
 import { useToast } from 'primevue/usetoast';
 import AnthropicResultView from './AnthropicResultView.vue';
 import OpenAIResultView from './OpenAIResultView.vue';
@@ -102,7 +108,7 @@ const resultData = ref([]);
 const currentResultIndex = ref(0);
 const isLoadingResults = ref(false);
 const resultError = ref(null);
-const showMetadata = ref(false);
+const metadataPanel = ref(null);
 const resultsCache = ref({});
 
 const apiService = computed(() => {
@@ -244,6 +250,10 @@ function formatFieldName(key) {
   return key.charAt(0).toUpperCase() + key.slice(1).replace(/_/g, ' ');
 }
 
+function formatValue(value) {
+  return typeof value === 'object' ? JSON.stringify(value, null, 2) : value;
+}
+
 function formatDate(dateString) {
   if (!dateString) return 'N/A';
 
@@ -253,6 +263,10 @@ function formatDate(dateString) {
   } catch (e) {
     return dateString;
   }
+}
+
+function toggleMetadataPopover(event) {
+  metadataPanel.value.toggle(event);
 }
 
 function closeDialog() {
