@@ -10,6 +10,7 @@ import CreateBatch from './views/CreateBatch.vue'
 import CheckBatch from './views/CheckBatch.vue'
 import Settings from './views/Settings.vue'
 import JsonlGenerator from './views/JsonlGenerator.vue'
+import Tooltip from 'primevue/tooltip';
 
 const routes = [
   { path: '/', component: Home },
@@ -28,4 +29,5 @@ const app = createApp(App)
 app.use(router)
 app.use(ToastService)
 app.use(PrimeVue, { theme: { preset: Aura } })
+app.directive('tooltip', Tooltip);
 app.mount('#app')
