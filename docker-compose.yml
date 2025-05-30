@@ -1,0 +1,5 @@
+services:
+  vue-app:
+    build: .
+    ports:
+      - "6000:8080"
