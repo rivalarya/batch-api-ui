@@ -12,7 +12,7 @@
                 <span>{{ providerName }} Requests</span>
               </div>
               <!-- Provider Selector -->
-              <Dropdown v-model="selectedProvider" :options="providerOptions" optionLabel="name" optionValue="value"
+              <Select v-model="selectedProvider" :options="providerOptions" optionLabel="name" optionValue="value"
                 class="w-auto text-sm" @change="onProviderChange" />
             </div>
           </template>
@@ -72,8 +72,8 @@
             <div v-if="selectedProvider === 'openai'" class="mb-4">
               <div class="mb-4">
                 <label for="model" class="block mb-2 font-medium">Model</label>
-                <Dropdown id="model" v-model="currentRequest.body.model" :options="openAIModels" class="w-full"
-                  placeholder="Select a model" />
+                <Select id="model" v-model="currentRequest.body.model" :options="openAIModels" class="w-full"
+                  placeholder="Select a model" filter optionLabel="name" optionValue="value" :filterFields="['name']" />
               </div>
 
               <div class="mb-4">
@@ -85,7 +85,7 @@
                   </div>
                   <div class="mb-2">
                     <label :for="`role-${msgIndex}`" class="block mb-1 text-sm font-medium">Role</label>
-                    <Dropdown :id="`role-${msgIndex}`" v-model="msg.role" :options="messageRoles" class="w-full"
+                    <Select :id="`role-${msgIndex}`" v-model="msg.role" :options="messageRoles" class="w-full"
                       placeholder="Select a role" />
                   </div>
                   <div>
@@ -114,8 +114,8 @@
             <div v-else-if="selectedProvider === 'anthropic'" class="mb-4">
               <div class="mb-4">
                 <label for="model" class="block mb-2 font-medium">Model</label>
-                <Dropdown id="model" v-model="currentRequest.params.model" :options="anthropicModels" class="w-full"
-                  placeholder="Select a model" />
+                <Select id="model" v-model="currentRequest.params.model" :options="anthropicModels" class="w-full"
+                  placeholder="Select a model" filter optionLabel="name" optionValue="value" :filterFields="['name']" />
               </div>
 
               <div class="mb-4">
@@ -128,7 +128,7 @@
                   </div>
                   <div class="mb-2">
                     <label :for="`role-${msgIndex}`" class="block mb-1 text-sm font-medium">Role</label>
-                    <Dropdown :id="`role-${msgIndex}`" v-model="msg.role" :options="anthropicMessageRoles"
+                    <Select :id="`role-${msgIndex}`" v-model="msg.role" :options="anthropicMessageRoles"
                       class="w-full" placeholder="Select a role" />
                   </div>
                   <div>
@@ -204,11 +204,13 @@ import Button from 'primevue/button';
 import InputText from 'primevue/inputtext';
 import Textarea from 'primevue/textarea';
 import InputNumber from 'primevue/inputnumber';
-import Dropdown from 'primevue/dropdown';
+import Select from 'primevue/select';
 import Dialog from 'primevue/dialog';
 import Toast from 'primevue/toast';
 import { useToast } from 'primevue/usetoast';
 import { marked } from 'marked';
+import AnthropicModelsApiService from '../services/AnthropicModelsService';
+import OpenAIModelsService from '../services/OpenAIModelsService';
 
 const toast = useToast();
 const route = useRoute();
@@ -226,20 +228,20 @@ const providerOptions = ref([
   { name: 'Anthropic', value: 'anthropic' }
 ]);
 
-const openAIModels = [
+const openAIModels = ref([
   'gpt-4.1',
   'gpt-4.1-mini',
   'gpt-4.1-nano',
-];
+].map(model => ({ name: model, value: model })));
 
-const anthropicModels = [
+const anthropicModels = ref([
   'claude-3-7-sonnet-20250219',
   'claude-3-5-sonnet-20240620',
   'claude-3-5-sonnet-20241022',
   'claude-3-5-haiku-20241022',
   'claude-3-haiku-20240307',
   'claude-3-opus-20240229'
-];
+].map(model => ({ name: model, value: model })));
 
 const messageRoles = ['system', 'user', 'assistant'];
 const anthropicMessageRoles = ['user', 'assistant'];
@@ -288,15 +290,50 @@ function hljs(code, language) {
   return highlighted;
 }
 
-watch(selectedProvider, (newProvider) => {
+watch(selectedProvider, async (newProvider) => {
   localStorage.setItem('selected_provider', newProvider);
   updateUrlWithProvider();
   loadRequestsFromLocalStorage();
   selectedRequestIndex.value = null;
+
+  if (newProvider === 'anthropic') {
+    try {
+      const models = await AnthropicModelsApiService.getModels();
+      anthropicModels.value = models.map(model => ({ name: model, value: model }));
+    } catch (error) {
+      console.error('Error loading Anthropic models:', error);
+      // Keep using the default models if there's an error
+    }
+  } else if (newProvider === 'openai') {
+    try {
+      const models = await OpenAIModelsService.getModels();
+      openAIModels.value = models.map(model => ({ name: model, value: model }));
+    } catch (error) {
+      console.error('Error loading OpenAI models:', error);
+      // Keep using the default models if there's an error
+    }
+  }
 });
 
-onMounted(() => {
+onMounted(async () => {
   loadRequestsFromLocalStorage();
+  if (selectedProvider.value === 'anthropic') {
+    try {
+      const models = await AnthropicModelsApiService.getModels();
+      anthropicModels.value = models.map(model => ({ name: model, value: model }));
+    } catch (error) {
+      console.error('Error loading Anthropic models:', error);
+      // Keep using the default models if there's an error
+    }
+  } else if (selectedProvider.value === 'openai') {
+    try {
+      const models = await OpenAIModelsService.getModels();
+      openAIModels.value = models.map(model => ({ name: model, value: model }));
+    } catch (error) {
+      console.error('Error loading OpenAI models:', error);
+      // Keep using the default models if there's an error
+    }
+  }
 });
 
 function updateUrlWithProvider() {
@@ -476,24 +513,66 @@ function copyJsonl() {
     return;
   }
 
-  navigator.clipboard.writeText(jsonlOutput.value)
-    .then(() => {
+  // Try using the Clipboard API first
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(jsonlOutput.value)
+      .then(() => {
+        toast.add({
+          severity: 'success',
+          summary: 'Copied',
+          detail: 'JSONL content copied to clipboard',
+          life: 2000
+        });
+      })
+      .catch(err => {
+        console.error('Failed to copy text: ', err);
+        fallbackCopyToClipboard();
+      });
+  } else {
+    // Fallback for non-secure contexts or when clipboard API is not available
+    fallbackCopyToClipboard();
+  }
+}
+
+function fallbackCopyToClipboard() {
+  // Create a temporary textarea element
+  const textArea = document.createElement('textarea');
+  textArea.value = jsonlOutput.value;
+  
+  // Make the textarea out of viewport
+  textArea.style.position = 'fixed';
+  textArea.style.left = '-999999px';
+  textArea.style.top = '-999999px';
+  document.body.appendChild(textArea);
+  
+  // Select and copy the text
+  textArea.focus();
+  textArea.select();
+  
+  try {
+    const successful = document.execCommand('copy');
+    if (successful) {
       toast.add({
         severity: 'success',
         summary: 'Copied',
         detail: 'JSONL content copied to clipboard',
         life: 2000
       });
-    })
-    .catch(err => {
-      console.error('Failed to copy text: ', err);
-      toast.add({
-        severity: 'error',
-        summary: 'Copy Failed',
-        detail: 'Failed to copy to clipboard',
-        life: 3000
-      });
+    } else {
+      throw new Error('Copy command failed');
+    }
+  } catch (err) {
+    console.error('Failed to copy text: ', err);
+    toast.add({
+      severity: 'error',
+      summary: 'Copy Failed',
+      detail: 'Failed to copy to clipboard',
+      life: 3000
     });
+  }
+  
+  // Clean up
+  document.body.removeChild(textArea);
 }
 </script>
 
